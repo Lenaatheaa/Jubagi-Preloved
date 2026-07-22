@@ -83,8 +83,8 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Admin punya layout sendiri - tidak perlu Navbar biasa
-  if (isAdmin) return null;
+  // Sembunyikan Navbar di halaman admin karena sudah punya sidebar sendiri
+  if (pathname?.startsWith('/admin')) return null;
 
   // Render a minimal skeleton during loading or before mount to prevent hydration mismatch
   if (!mounted || status === 'loading') {

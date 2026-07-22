@@ -1,7 +1,15 @@
+'use client';
+
 import { ShoppingBag, Globe, MessageCircle, Mail, MapPin, Phone, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export function Footer() {
+  const pathname = usePathname();
+  
+  // Sembunyikan Footer di halaman admin
+  if (pathname?.startsWith('/admin')) return null;
+
   return (
     <footer className="bg-[#0B0F19] text-gray-400 font-sans border-t border-border">
 
