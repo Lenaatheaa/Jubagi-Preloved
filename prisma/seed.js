@@ -754,11 +754,30 @@ async function main() {
 
   let productIdx = 0;
   const createdProducts = [];
-  for (const productInfo of dummyProductsData) {
+  
+  console.log('Verifying images for dummy products (filtering out 404s)...');
+  const validProductsData = [];
+  // Cek per batch agar tidak kena rate limit
+  for (let i = 0; i < dummyProductsData.length; i += 5) {
+    const batch = dummyProductsData.slice(i, i + 5);
+    const results = await Promise.all(batch.map(async (pData) => {
+      try {
+        if (!pData.image) return pData;
+        const res = await fetch(pData.image, { method: 'HEAD' });
+        if (res.ok) return pData;
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }));
+    validProductsData.push(...results.filter(Boolean));
+  }
+  console.log(`Verified! ${validProductsData.length} products have working images.`);
+
+  for (const productInfo of validProductsData) {
     const { categoryId, image, ...pData } = productInfo;
     const priceBigInt = pData.price ? BigInt(pData.price) : null;
     const locationName = pData.location || loc(productIdx);
-    const finalImageUrl = image && image.includes('unsplash') ? `https://picsum.photos/seed/jubagi${productIdx}/800/800` : image;
 
     const product = await prisma.product.create({
       data: {
@@ -777,7 +796,7 @@ async function main() {
         createdAt: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)), // Randomize within last 30 days
         images: {
           create: [
-            { imageUrl: finalImageUrl }
+            { imageUrl: image }
           ]
         }
       }
