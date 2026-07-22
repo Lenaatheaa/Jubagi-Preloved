@@ -37,7 +37,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         
         // Asumsi: Jika refund, saldo dikembalikan ke wallet pembeli (karena midtrans tidak ada API refund otomatis di sini)
         await tx.user.update({
-          where: { id: transaction.buyerId },
+          where: { id: transaction.buyerId! },
           data: { balance: { increment: Number(transaction.totalPrice) } }
         });
 
@@ -57,7 +57,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
 
         await tx.user.update({
-          where: { id: transaction.sellerId },
+          where: { id: transaction.sellerId! },
           data: { balance: { increment: Number(transaction.totalPrice) } }
         });
 
