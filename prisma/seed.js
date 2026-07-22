@@ -757,7 +757,8 @@ async function main() {
   for (const productInfo of dummyProductsData) {
     const { categoryId, image, ...pData } = productInfo;
     const priceBigInt = pData.price ? BigInt(pData.price) : null;
-    const locationName = loc(productIdx);
+    const locationName = pData.location || loc(productIdx);
+    const finalImageUrl = image && image.includes('unsplash') ? `https://picsum.photos/seed/jubagi${productIdx}/800/800` : image;
 
     const product = await prisma.product.create({
       data: {
@@ -776,7 +777,7 @@ async function main() {
         createdAt: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)), // Randomize within last 30 days
         images: {
           create: [
-            { imageUrl: image }
+            { imageUrl: finalImageUrl }
           ]
         }
       }
