@@ -15,13 +15,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const transactionId = parseInt(resolvedParams.id, 10);
 
     const transaction = await prisma.transaction.findUnique({
-      where: { id: transactionId },
-      include: { buyer: true, seller: true }
+      where: { id: transactionId }
     });
 
     if (!transaction || transaction.status !== 'disputed') {
       return NextResponse.json({ message: 'Transaksi tidak valid' }, { status: 404 });
     }
+
+    const buyer = transaction.buyerId ? await prisma.user.findUnique({ where: { id: transaction.buyerId } }) : null;
+    const seller = transaction.sellerId ? await prisma.user.findUnique({ where: { id: transaction.sellerId } }) : null;
 
     const { sendEmail } = require('@/lib/email');
 
@@ -43,7 +45,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           data: { transactionId, status: 'cancelled', note: 'Komplain disetujui. Dana dikembalikan ke saldo pembeli.' }
         });
         
-        await sendEmail(transaction.buyer.email, 'Keputusan Komplain: Dana Dikembalikan', `<p>Halo,</p><p>Berdasarkan tinjauan tim Admin JUBAGI, komplain Anda untuk transaksi TRX-00${transactionId} disetujui. Dana sebesar Rp ${transaction.totalPrice} telah dikembalikan ke saldo akun JUBAGI Anda.</p>`);
+        if (buyer?.email) {
+          await sendEmail(buyer.email, 'Keputusan Komplain: Dana Dikembalikan', `<p>Halo,</p><p>Berdasarkan tinjauan tim Admin JUBAGI, komplain Anda untuk transaksi TRX-00${transactionId} disetujui. Dana sebesar Rp ${transaction.totalPrice} telah dikembalikan ke saldo akun JUBAGI Anda.</p>`);
+        }
 
       } else if (action === 'forward_seller') {
         // Penjual menang komplain, uang cair ke penjual
@@ -61,7 +65,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           data: { transactionId, status: 'success', note: 'Komplain ditolak. Dana diteruskan ke penjual.' }
         });
         
-        await sendEmail(transaction.seller.email, 'Keputusan Komplain: Dana Diteruskan', `<p>Halo,</p><p>Berdasarkan tinjauan tim Admin JUBAGI, komplain pembeli untuk transaksi TRX-00${transactionId} ditolak. Dana sebesar Rp ${transaction.totalPrice} telah diteruskan ke saldo akun Anda.</p>`);
+        if (seller?.email) {
+          await sendEmail(seller.email, 'Keputusan Komplain: Dana Diteruskan', `<p>Halo,</p><p>Berdasarkan tinjauan tim Admin JUBAGI, komplain pembeli untuk transaksi TRX-00${transactionId} ditolak. Dana sebesar Rp ${transaction.totalPrice} telah diteruskan ke saldo akun Anda.</p>`);
+        }
       }
     });
 
