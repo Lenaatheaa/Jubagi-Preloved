@@ -78,7 +78,7 @@ export default async function StorePage({ params }: StorePageProps) {
 
   const totalReviews = reviews.length;
   const storeRating = totalReviews > 0 
-    ? (reviews.reduce((acc, rev) => acc + rev.rating, 0) / totalReviews).toFixed(1) 
+    ? (reviews.reduce((acc, rev) => acc + (rev.rating || 0), 0) / totalReviews).toFixed(1) 
     : '0.0';
   
   const activeProducts = user.products.filter(p => p.status === 'active');

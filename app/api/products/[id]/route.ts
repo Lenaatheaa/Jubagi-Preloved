@@ -38,7 +38,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     });
     const sellerReviewCount = sellerReviews.length;
     const sellerRating = sellerReviewCount > 0
-      ? (sellerReviews.reduce((acc, rev) => acc + rev.rating, 0) / sellerReviewCount).toFixed(1)
+      ? (sellerReviews.reduce((acc, rev) => acc + (rev.rating || 0), 0) / sellerReviewCount).toFixed(1)
       : '0.0';
 
     const formatted = {

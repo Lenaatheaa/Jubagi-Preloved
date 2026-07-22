@@ -48,16 +48,15 @@ export async function POST(request: Request) {
     // 4. Cari transaksi dan pembayaran di database
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
-      include: {
-        buyer: true,
-        seller: true,
-        product: true
-      }
     });
 
     if (!transaction) {
       return NextResponse.json({ message: 'Transaction not found' }, { status: 404 });
     }
+
+    const buyer = transaction.buyerId ? await prisma.user.findUnique({ where: { id: transaction.buyerId }, include: { profile: true } }) : null;
+    const seller = transaction.sellerId ? await prisma.user.findUnique({ where: { id: transaction.sellerId }, include: { profile: true } }) : null;
+    const product = transaction.productId ? await prisma.product.findUnique({ where: { id: transaction.productId } }) : null;
 
     const payment = await prisma.payment.findFirst({
       where: { transactionId: transactionId, midtransOrderId: order_id },
@@ -130,17 +129,21 @@ export async function POST(request: Request) {
     if (transactionStatus === 'success') {
       const { sendEmail } = require('@/lib/email');
       // Email ke pembeli
-      await sendEmail(
-        transaction.buyer.email,
-        `Pembayaran Berhasil: ${transaction.product?.title}`,
-        `<p>Halo ${transaction.buyer.name},</p><p>Pembayaran Anda untuk <strong>${transaction.product?.title}</strong> sebesar Rp ${transaction.totalPrice} telah berhasil.</p><p>Mohon tunggu penjual memproses pesanan Anda.</p>`
-      );
+      if (buyer?.email) {
+        await sendEmail(
+          buyer.email,
+          `Pembayaran Berhasil: ${product?.title || 'Pesanan Anda'}`,
+          `<p>Halo ${buyer.profile?.name || 'Pembeli'},</p><p>Pembayaran Anda untuk <strong>${product?.title || 'Pesanan Anda'}</strong> sebesar Rp ${transaction.totalPrice} telah berhasil.</p><p>Mohon tunggu penjual memproses pesanan Anda.</p>`
+        );
+      }
       // Email ke penjual
-      await sendEmail(
-        transaction.seller.email,
-        `Pesanan Baru Masuk: ${transaction.product?.title}`,
-        `<p>Halo ${transaction.seller.name},</p><p>Hore! <strong>${transaction.product?.title}</strong> telah dibayar oleh pembeli. Segera proses dan kirimkan barangnya ya!</p>`
-      );
+      if (seller?.email) {
+        await sendEmail(
+          seller.email,
+          `Pesanan Baru Masuk: ${product?.title || 'Produk Anda'}`,
+          `<p>Halo ${seller.profile?.name || 'Penjual'},</p><p>Hore! <strong>${product?.title || 'Produk Anda'}</strong> telah dibayar oleh pembeli. Segera proses dan kirimkan barangnya ya!</p>`
+        );
+      }
     }
 
     console.log(`[Midtrans Webhook] Successfully processed order ${order_id} to status ${transactionStatus}`);

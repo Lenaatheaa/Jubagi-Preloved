@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Target user tidak valid' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findUnique({ where: { email: session.user.email }, include: { profile: true } });
     if (!user) return NextResponse.json({ message: 'User tidak ditemukan' }, { status: 404 });
 
     if (user.id === targetUserId) {

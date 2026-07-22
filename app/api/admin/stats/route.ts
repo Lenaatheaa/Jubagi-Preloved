@@ -82,7 +82,7 @@ export async function GET(request: Request) {
     });
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-    const chartData = [];
+    const chartData: any[] = [];
     
     for (let i = 0; i < bucketCount; i++) {
       if (step === 'day') {

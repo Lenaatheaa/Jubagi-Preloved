@@ -13,6 +13,7 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { email },
+      include: { profile: true }
     });
 
     if (!user) {
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
       html: `
         <div style="font-family: Arial, sans-serif; max-w-md mx-auto padding: 20px;">
           <h2>Reset Password</h2>
-          <p>Halo, ${user.name || 'Pengguna JUBAGI'},</p>
+          <p>Halo, ${user.profile?.name || 'Pengguna JUBAGI'},</p>
           <p>Kami menerima permintaan untuk mereset password akun JUBAGI Anda. Jika Anda tidak memintanya, abaikan email ini.</p>
           <a href="${resetLink}" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0;">Reset Password Saya</a>
           <p style="font-size: 12px; color: #666;">Tautan ini akan kedaluwarsa dalam 1 jam.</p>
