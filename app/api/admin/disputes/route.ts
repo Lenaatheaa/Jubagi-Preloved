@@ -14,16 +14,25 @@ export async function GET(req: Request) {
       where: {
         status: 'disputed'
       },
-      include: {
-        product: { select: { id: true, title: true, type: true } },
-        buyer: { select: { id: true, name: true, email: true } },
-        seller: { select: { id: true, name: true, email: true } },
-        payment: true,
-      },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json(disputedTransactions, { status: 200 });
+    const enrichedTransactions = await Promise.all(disputedTransactions.map(async (trx) => {
+      const product = trx.productId ? await prisma.product.findUnique({ where: { id: trx.productId }, select: { id: true, title: true, type: true } }) : null;
+      const buyer = trx.buyerId ? await prisma.user.findUnique({ where: { id: trx.buyerId }, select: { id: true, profile: { select: { name: true } }, email: true } }) : null;
+      const seller = trx.sellerId ? await prisma.user.findUnique({ where: { id: trx.sellerId }, select: { id: true, profile: { select: { name: true } }, email: true } }) : null;
+      const payments = await prisma.payment.findMany({ where: { transactionId: trx.id } });
+      
+      return {
+        ...trx,
+        product,
+        buyer: buyer ? { id: buyer.id, name: buyer.profile?.name, email: buyer.email } : null,
+        seller: seller ? { id: seller.id, name: seller.profile?.name, email: seller.email } : null,
+        payment: payments[0] || null,
+      };
+    }));
+
+    return NextResponse.json(enrichedTransactions, { status: 200 });
   } catch (error) {
     console.error('Fetch disputes error:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
