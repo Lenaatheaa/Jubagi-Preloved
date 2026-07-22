@@ -13,6 +13,7 @@ interface Stats {
   totalBoostRevenue: number;
   recentUsers: any[];
   recentTransactions: any[];
+  chartData: any[];
 }
 
 function StatCard({ label, value, icon: Icon, color, sub, isCurrency }: any) {
