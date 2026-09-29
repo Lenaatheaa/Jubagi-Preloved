@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id.toString(),
           email: user.email,
           name: user.profile?.name || user.email.split('@')[0],
-          role: user.role || 'user',
+          role: user.email?.toLowerCase().trim() === 'jubagipreloved@gmail.com' ? 'admin' : 'user',
           image: user.profile?.avatar || null,
         } as any;
       },
@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
           });
         }
         user.id = existingUser.id.toString();
-        (user as any).role = existingUser.role || 'user';
+        (user as any).role = email?.toLowerCase().trim() === 'jubagipreloved@gmail.com' ? 'admin' : 'user';
 
         // Send login notification to Gmail (non-blocking)
         sendEmail(
@@ -109,9 +109,12 @@ export const authOptions: NextAuthOptions = {
         token.name = dbUser?.profile?.name || user.name;
         token.email = user.email;
         token.sub = dbUser?.id.toString() || user.id;
-        token.role = dbUser?.role || (user as any).role || 'user';
         token.picture = dbUser?.profile?.avatar || user.image;
       }
+      
+      // Pastikan role selalu up-to-date terlepas dari login baru atau sesi lama
+      const tokenEmail = (token.email as string || '').toLowerCase().trim();
+      token.role = tokenEmail === 'jubagipreloved@gmail.com' ? 'admin' : 'user';
       return token;
     },
   },

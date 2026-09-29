@@ -94,14 +94,20 @@ export default function AdminUsersPage() {
                       {new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleDelete(u.id)}
-                        disabled={deletingId === u.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg transition-colors"
-                      >
-                        {deletingId === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                        Hapus
-                      </button>
+                      {u.email?.toLowerCase().trim() === 'jubagipreloved@gmail.com' ? (
+                        <span className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg border border-primary/20">
+                          Admin Utama
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(u.id)}
+                          disabled={deletingId === u.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-lg transition-colors"
+                        >
+                          {deletingId === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          Hapus
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

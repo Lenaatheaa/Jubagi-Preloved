@@ -37,6 +37,11 @@ export async function DELETE(request: Request) {
   const { id } = await request.json();
   if (!id) return NextResponse.json({ message: 'ID diperlukan' }, { status: 400 });
 
+  const userToDelete = await prisma.user.findUnique({ where: { id: Number(id) } });
+  if (userToDelete?.email?.toLowerCase().trim() === 'jubagipreloved@gmail.com') {
+    return NextResponse.json({ message: 'Akun admin utama tidak dapat dihapus' }, { status: 403 });
+  }
+
   await prisma.user.delete({ where: { id: Number(id) } });
   return NextResponse.json({ success: true });
 }
