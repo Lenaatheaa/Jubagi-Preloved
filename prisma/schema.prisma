@@ -14,6 +14,8 @@ model User {
   password   String    @db.Text
   role       String?   @default("user") @db.VarChar(20)
   balance    Float     @default(0)
+  isSellerAcceptedTerms Boolean @default(false) @map("is_seller_accepted_terms")
+  sellerAcceptedAt      DateTime? @map("seller_accepted_at")
   createdAt  DateTime  @default(now()) @map("created_at")
 
   profile    Profile?
@@ -151,6 +153,9 @@ model Transaction {
   buyerId     Int?      @map("buyer_id")
   sellerId    Int?      @map("seller_id")
   totalPrice  BigInt?   @map("total_price")
+  adminFee    BigInt?   @default(0) @map("admin_fee")
+  sellerNet   BigInt?   @default(0) @map("seller_net")
+  feeType     String?   @default("buyer") @db.VarChar(20) @map("fee_type")
   status      String?   @default("pending") @db.VarChar(20)
   createdAt   DateTime  @default(now()) @map("created_at")
 
@@ -327,4 +332,14 @@ model Follow {
   @@index([followerId], name: "idx_follow_follower")
   @@index([followingId], name: "idx_follow_following")
   @@map("follows")
+}
+
+model PlatformSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
 }

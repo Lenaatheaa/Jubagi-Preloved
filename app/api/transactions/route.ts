@@ -106,6 +106,17 @@ export const POST = catchAsync(async (request: Request) => {
 
   const { productId, offerPrice, shippingMethod, paymentMethod } = validation.data;
 
+  let platformFeeRate = 0.05;
+  try {
+    const feeSetting = await prisma.platformSetting.findUnique({ where: { key: 'PLATFORM_FEE_RATE' } });
+    if (feeSetting && feeSetting.value) {
+      platformFeeRate = Number(feeSetting.value);
+    }
+  } catch (e) {
+    console.warn('Could not load PLATFORM_FEE_RATE from db', e);
+  }
+  const calculateAdminFee = (amount: number) => Math.round(amount * platformFeeRate);
+
   // 1. Get user dengan profile
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -133,6 +144,8 @@ export const POST = catchAsync(async (request: Request) => {
 
   const isHibah = product.type === 'hibah';
   const finalPrice = isHibah ? 0 : (offerPrice ? Number(offerPrice) : Number(product.price ?? 0));
+  const adminFee = isHibah ? 0 : calculateAdminFee(finalPrice);
+  const sellerNet = isHibah ? 0 : Math.max(finalPrice - adminFee, 0);
 
   // 3. Buat transaksi di database
   const transaction = await prisma.transaction.create({
@@ -141,6 +154,9 @@ export const POST = catchAsync(async (request: Request) => {
       buyerId: user.id,
       sellerId: product.userId,
       totalPrice: BigInt(finalPrice),
+      adminFee: BigInt(adminFee),
+      sellerNet: BigInt(sellerNet),
+      feeType: 'buyer',
       status: isHibah ? 'success' : 'pending',
     },
   });
@@ -193,6 +209,7 @@ export const POST = catchAsync(async (request: Request) => {
   console.log('[Transactions] Creating Snap parameter for order:', orderId);
 
   // 6. Create Snap parameters
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
   const parameter = {
     transaction_details: {
       order_id: orderId,
@@ -216,6 +233,11 @@ export const POST = catchAsync(async (request: Request) => {
         phone: user.profile.phone,
         address: user.profile.address,
       },
+    },
+    callbacks: {
+      finish: `${baseUrl}/transactions?role=buyer&payment=success`,
+      unfinish: `${baseUrl}/transactions?role=buyer&payment=pending`,
+      error: `${baseUrl}/transactions?role=buyer&payment=error`,
     },
   };
 

@@ -30,6 +30,15 @@ function ProductsCatalogContent() {
   const [type, setType] = useState(searchParams.get('type') || '');
   const [condition, setCondition] = useState(searchParams.get('condition') || '');
 
+  // Sinkronkan state dengan URL jika URL berubah dari luar (misal: navigasi Header)
+  useEffect(() => {
+    setQ(searchParams.get('q') || '');
+    setCategory(searchParams.get('category') || '');
+    setLocation(searchParams.get('location') || 'Seluruh Indonesia');
+    setType(searchParams.get('type') || '');
+    setCondition(searchParams.get('condition') || '');
+  }, [searchParams]);
+
   // Hook untuk mengambil produk terpaginasi
   const {
     products,

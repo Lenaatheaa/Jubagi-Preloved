@@ -1,7 +1,8 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { SellFormView } from '@/components/product/SellFormView';
+import { db as prisma } from '@/lib/db';
+import { JualPageClient } from './JualPageClient';
 
 export const metadata = {
   title: 'Jual Barang - JUBAGI',
@@ -10,19 +11,18 @@ export const metadata = {
 
 export default async function JualPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect('/');
+  if (!session?.user?.email) redirect('/');
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { isSellerAcceptedTerms: true },
+  });
+
+  if (!user) redirect('/');
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 dark:from-background dark:via-background dark:to-primary/10">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-28 pb-20">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-foreground">
-            Pasang <span className="text-primary">Iklan</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">Upload foto, tentukan detail, dan mulai berjualan!</p>
-        </div>
-        <SellFormView />
-      </div>
+      <JualPageClient hasAcceptedTerms={user.isSellerAcceptedTerms || false} />
     </main>
   );
 }

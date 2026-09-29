@@ -57,13 +57,13 @@ export function HeroSection() {
           
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 mt-4">
-            <button className="bg-gradient-to-r from-primary to-pink-400 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all hover:-translate-y-1 flex items-center gap-2">
+            <button onClick={() => router.push('/products')} className="bg-gradient-to-r from-primary to-pink-400 text-white px-6 py-3 rounded-xl font-medium shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all hover:-translate-y-1 flex items-center gap-2">
               Jelajahi Produk <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="bg-destructive text-white px-8 py-3 rounded-xl font-medium shadow-lg shadow-destructive/30 hover:shadow-destructive/40 transition-all hover:-translate-y-1">
+            <button onClick={() => router.push('/jual')} className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-medium shadow-lg shadow-primary/30 hover:shadow-primary/40 transition-all hover:-translate-y-1">
               Jual Barang
             </button>
-            <button className="bg-card border-2 border-[#22C55E] text-[#22C55E] px-6 py-3 rounded-xl font-medium shadow-sm hover:bg-green-50 transition-all hover:-translate-y-1 flex items-center gap-2">
+            <button onClick={() => router.push('/products?type=hibah')} className="bg-card border-2 border-[#22C55E] text-[#22C55E] px-6 py-3 rounded-xl font-medium shadow-sm hover:bg-green-50 transition-all hover:-translate-y-1 flex items-center gap-2">
               <Gift className="w-5 h-5" /> Hibah Barang
             </button>
           </div>

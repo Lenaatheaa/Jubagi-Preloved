@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard, Users, Package, Gift, ArrowLeftRight,
-  LogOut, Shield, Menu, X, ChevronRight, Tag, Star, TrendingUp, Landmark, ShieldAlert, Scale
+  LogOut, Shield, Menu, X, ChevronRight, Tag, Star, TrendingUp, Landmark, ShieldAlert, Scale, Settings
 } from 'lucide-react';
 
 const MENU = [
@@ -20,6 +20,7 @@ const MENU = [
   { href: '/admin/categories', label: 'Kategori', icon: Tag },
   { href: '/admin/reports', label: 'Moderasi Komunitas', icon: ShieldAlert },
   { href: '/admin/disputes', label: 'Resolusi Sengketa', icon: Scale },
+  { href: '/admin/settings', label: 'Pengaturan Sistem', icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

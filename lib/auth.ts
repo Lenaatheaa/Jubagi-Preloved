@@ -74,14 +74,14 @@ export const authOptions: NextAuthOptions = {
           });
         }
         user.id = existingUser.id.toString();
-        (user as any).role = 'user';
+        (user as any).role = existingUser.role || 'user';
 
-        // Send login notification to Gmail
-        await sendEmail(
+        // Send login notification to Gmail (non-blocking)
+        sendEmail(
           email,
           'Notifikasi Login JUBAGI',
           `Halo ${user.name}, anda berhasil login ke JUBAGI E-commerce melalui akun Google Anda pada ${new Date().toLocaleString('id-ID')}. Jika ini bukan Anda, segera amankan akun Anda.`
-        );
+        ).catch(err => console.error('Error sending login notification email:', err));
       }
       return true;
     },

@@ -29,15 +29,13 @@ export async function GET(request: Request) {
       prisma.transaction.count(),
       prisma.product.count({ where: { type: 'hibah' } }),
       prisma.hibahRequest.count(),
-      prisma.transaction.findMany({ where: { status: 'success' }, select: { totalPrice: true } }),
+      prisma.transaction.findMany({ where: { status: 'success' }, select: { totalPrice: true, adminFee: true } }),
       prisma.productBoost.findMany({ select: { price: true, status: true } }),
     ]);
 
     const totalTransactionRevenue = transactions.reduce((acc, t) => acc + Number(t.totalPrice || 0), 0);
+    const totalAdminFeeRevenue = transactions.reduce((acc, t) => acc + Number(t.adminFee || 0), 0);
     const totalBoostRevenue = boosts.filter(b => b.status === 'active' || b.status === 'expired').reduce((acc, b) => acc + Number(b.price || 0), 0);
-    
-    // We only take a small fee from transactions (e.g., 5% platform fee) if we had one.
-    // For now, let's just show Total Nilai Transaksi and Total Pendapatan Iklan.
 
     const recentTransactions = await prisma.transaction.findMany({
       take: 5,
@@ -138,6 +136,7 @@ export async function GET(request: Request) {
       totalHibah,
       totalHibahRequests,
       totalTransactionRevenue,
+      totalAdminFeeRevenue,
       totalBoostRevenue,
       chartData,
       recentTransactions: formattedRecentTransactions,

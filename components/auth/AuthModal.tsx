@@ -231,7 +231,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode = 'login' }: Auth
                 </div>
               </div>
 
-              <button disabled={isLoading} type="submit" className="w-full bg-[#22C55E] hover:bg-[#22C55E]/90 text-white font-bold py-3 rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-[#22C55E]/30 active:scale-[0.98] mt-2 flex justify-center items-center">
+              <button disabled={isLoading} type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] mt-2 flex justify-center items-center">
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buat Akun JUBAGI'}
               </button>
 

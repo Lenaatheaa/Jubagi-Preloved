@@ -8,7 +8,7 @@ export default function AdminTransactionsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/hibah')
+    fetch('/api/admin/transactions')
       .then(async r => {
         const d = await r.json();
         if (r.ok) setData({ transactions: d.transactions ?? [] });
@@ -63,6 +63,8 @@ export default function AdminTransactionsPage() {
                   <th className="px-6 py-4 text-left">Pembeli</th>
                   <th className="px-6 py-4 text-left">Penjual</th>
                   <th className="px-6 py-4 text-left">Total</th>
+                  <th className="px-6 py-4 text-left">Fee</th>
+                  <th className="px-6 py-4 text-left">Net Seller</th>
                   <th className="px-6 py-4 text-left">Status</th>
                   <th className="px-6 py-4 text-left">Tanggal</th>
                 </tr>
@@ -77,6 +79,12 @@ export default function AdminTransactionsPage() {
                     <td className="px-6 py-4 font-semibold text-foreground">
                       {t.totalPrice ? `Rp ${t.totalPrice.toLocaleString('id-ID')}` : <span className="text-green-400">Hibah</span>}
                     </td>
+                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                      {t.adminFee ? `Rp ${t.adminFee.toLocaleString('id-ID')}` : 'Rp 0'}
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                      {t.sellerNet ? `Rp ${t.sellerNet.toLocaleString('id-ID')}` : 'Rp 0'}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_BADGE[t.status] || 'bg-amber-500/20 text-amber-400'}`}>
                         {t.status}
@@ -88,7 +96,7 @@ export default function AdminTransactionsPage() {
                   </tr>
                 ))}
                 {(data?.transactions || []).length === 0 && (
-                  <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">Belum ada transaksi</td></tr>
+                  <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">Belum ada transaksi</td></tr>
                 )}
               </tbody>
             </table>

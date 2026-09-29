@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Package, Clock, CheckCircle, XCircle, Search, CreditCard, Star, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -25,15 +25,16 @@ interface Transaction {
   } | null;
 }
 
-export default function TransactionsPage() {
+function TransactionsContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'success' | 'processing' | 'delivering' | 'review'>('all');
-  const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
+  const [role, setRole] = useState<'buyer' | 'seller'>((searchParams?.get('role') as 'buyer' | 'seller') || 'buyer');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -365,5 +366,13 @@ export default function TransactionsPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+      <TransactionsContent />
+    </Suspense>
   );
 }

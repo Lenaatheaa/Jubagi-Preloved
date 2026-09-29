@@ -459,7 +459,13 @@ export default function ProductDetailPage() {
                           Barang Sudah Dihibahkan
                         </button>
                       ) : (
-                        <button onClick={() => setShowHibahModal(true)} className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-green-500/20 hover:-translate-y-0.5 text-sm">
+                        <button onClick={() => {
+                          if (!session) {
+                            setErrorMsg('Kamu harus login untuk mengajukan hibah.');
+                            return;
+                          }
+                          setShowHibahModal(true);
+                        }} className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-green-500/20 hover:-translate-y-0.5 text-sm">
                            Ajukan Hibah
                         </button>
                       )}

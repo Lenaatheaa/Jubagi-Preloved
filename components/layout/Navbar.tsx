@@ -148,40 +148,54 @@ export function Navbar() {
                  
                  {showProfileMenu && (
                    <div className="absolute top-full right-0 mt-2 w-48 bg-background rounded-2xl shadow-xl border border-border py-2 z-50 flex flex-col">
+                     <div className="px-4 py-2 bg-muted/50 border-b border-border">
+                       <p className="text-xs font-black text-muted-foreground uppercase tracking-wider">Menu Pembeli</p>
+                     </div>
                      <Link 
-                       href="/profile" 
+                       href="/transactions?role=buyer" 
                        onClick={() => setShowProfileMenu(false)}
-                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
-                     >
-                       <User className="w-4 h-4" /> Profil Saya
-                     </Link>
-                     <Link 
-                       href="/wishlist" 
-                       onClick={() => setShowProfileMenu(false)}
-                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
-                     >
-                       <Heart className="w-4 h-4" /> Wishlist
-                     </Link>
-                     <Link 
-                       href="/transactions" 
-                       onClick={() => setShowProfileMenu(false)}
-                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
+                       className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
                      >
                        <Package className="w-4 h-4" /> Pesanan Saya
                      </Link>
                      <Link 
+                       href="/wishlist" 
+                       onClick={() => setShowProfileMenu(false)}
+                       className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
+                     >
+                       <Heart className="w-4 h-4" /> Wishlist
+                     </Link>
+
+                     <div className="px-4 py-2 bg-muted/50 border-y border-border mt-1">
+                       <p className="text-xs font-black text-primary uppercase tracking-wider">Seller Center</p>
+                     </div>
+                     <Link 
+                       href="/profile" 
+                       onClick={() => setShowProfileMenu(false)}
+                       className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
+                     >
+                       <User className="w-4 h-4" /> Toko Saya
+                     </Link>
+                     <Link 
+                       href="/transactions?role=seller" 
+                       onClick={() => setShowProfileMenu(false)}
+                       className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
+                     >
+                       <Package className="w-4 h-4" /> Pesanan Masuk
+                     </Link>
+                     <Link 
                        href="/profile/wallet" 
                        onClick={() => setShowProfileMenu(false)}
-                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
+                       className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
                      >
-                       <Wallet className="w-4 h-4" /> Dompet Saya
+                       <Wallet className="w-4 h-4" /> Saldo & Penarikan
                      </Link>
                      <Link 
                        href="/hibah" 
                        onClick={() => setShowProfileMenu(false)}
-                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
+                       className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary font-bold transition-colors"
                      >
-                       <Gift className="w-4 h-4" /> Manajemen Hibah
+                       <Gift className="w-4 h-4" /> Kelola Hibah
                      </Link>
                      <div className="h-px bg-border my-1 w-full" />
                      <button 

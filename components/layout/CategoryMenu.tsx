@@ -87,28 +87,28 @@ function AllCategoriesMenu() {
       />
 
       {/* Sidebar */}
-      <div className="relative w-full max-w-sm bg-[#1A1A1A] h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 z-10 border-l border-white/10">
+      <div className="relative w-full max-w-sm bg-card h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 z-10 border-l border-border">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white">All Categories</h2>
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="text-xl font-bold text-foreground">All Categories</h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Cari kategori..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+              className="w-full bg-muted border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
           </div>
         </div>
@@ -117,47 +117,47 @@ function AllCategoriesMenu() {
         <div className="flex-1 overflow-y-auto scrollbar-hide pb-20">
           <div className="flex flex-col">
             {CATEGORIES.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).map(cat => (
-              <div key={cat.id} className="flex flex-col border-b border-white/5">
+              <div key={cat.id} className="flex flex-col border-b border-border">
                 {cat.subcategories.length > 0 ? (
                   <button
                     onClick={(e) => toggleExpand(cat.id, e)}
-                    className="flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors w-full group"
+                    className="flex items-center justify-between px-5 py-4 hover:bg-muted transition-colors w-full group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shadow-inner ${cat.iconTextColor}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-muted shadow-sm ${cat.iconTextColor}`}>
                         {renderIcon(cat.iconName)}
                       </div>
-                      <span className="text-[15px] font-semibold text-gray-100 group-hover:text-primary transition-colors">{cat.name}</span>
+                      <span className="text-[15px] font-semibold text-foreground group-hover:text-primary transition-colors">{cat.name}</span>
                     </div>
-                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${expandedCat === cat.id ? 'rotate-180 text-white' : ''}`} />
+                    <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${expandedCat === cat.id ? 'rotate-180 text-foreground' : ''}`} />
                   </button>
                 ) : (
                   <Link
                     href={`/products?category=${cat.id}`}
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors w-full group"
+                    className="flex items-center justify-between px-5 py-4 hover:bg-muted transition-colors w-full group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 shadow-inner ${cat.iconTextColor}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-muted shadow-sm ${cat.iconTextColor}`}>
                         {renderIcon(cat.iconName)}
                       </div>
-                      <span className="text-[15px] font-semibold text-gray-100 group-hover:text-primary transition-colors">{cat.name}</span>
+                      <span className="text-[15px] font-semibold text-foreground group-hover:text-primary transition-colors">{cat.name}</span>
                     </div>
                   </Link>
                 )}
 
                 {/* Subcategories Accordion */}
                 {expandedCat === cat.id && cat.subcategories.length > 0 && (
-                  <div className="bg-[#121212] px-14 py-3 flex flex-col gap-4 border-t border-white/5">
+                  <div className="bg-muted px-14 py-3 flex flex-col gap-4 border-t border-border">
                     {cat.subcategories.map(sub => (
                       <div key={sub.name} className="flex flex-col gap-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{sub.name}</span>
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">{sub.name}</span>
                         {sub.items.map(item => (
-                          <Link
+                           <Link
                             key={item.name}
                             href={`/products?category=${cat.id}&q=${encodeURIComponent(item.name)}`}
                             onClick={() => setIsOpen(false)}
-                            className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors flex items-center before:content-[''] before:w-1 before:h-1 before:rounded-full before:bg-primary/50 before:mr-3 hover:before:bg-primary hover:translate-x-1 duration-200"
+                            className="text-sm text-muted-foreground hover:text-foreground py-1.5 transition-colors flex items-center before:content-[''] before:w-1 before:h-1 before:rounded-full before:bg-primary/50 before:mr-3 hover:before:bg-primary hover:translate-x-1 duration-200"
                           >
                             {item.name}
                           </Link>

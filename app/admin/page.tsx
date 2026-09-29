@@ -10,6 +10,7 @@ interface Stats {
   totalHibah: number;
   totalHibahRequests: number;
   totalTransactionRevenue: number;
+  totalAdminFeeRevenue: number;
   totalBoostRevenue: number;
   recentUsers: any[];
   recentTransactions: any[];
@@ -86,12 +87,13 @@ export default function AdminOverview() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard label="Total Nilai Transaksi Selesai" value={stats.totalTransactionRevenue || 0} isCurrency icon={Banknote} color="bg-green-600" sub="GMV dari seluruh transaksi sukses" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard label="Total GMV Transaksi Selesai" value={stats.totalTransactionRevenue || 0} isCurrency icon={Banknote} color="bg-green-600" sub="Total uang berputar" />
+        <StatCard label="Pendapatan Fee Admin" value={stats.totalAdminFeeRevenue || 0} isCurrency icon={TrendingUp} color="bg-indigo-500" sub="Potongan transaksi sukses" />
         <StatCard label="Pendapatan Jual Iklan (Boost)" value={stats.totalBoostRevenue || 0} isCurrency icon={Star} color="bg-amber-500" sub="Pemasukan dari penjual" />
+        <StatCard label="Total Transaksi Masuk" value={stats.totalTransactions} icon={ArrowLeftRight} color="bg-emerald-500" sub="Semua status (Pending - Selesai)" />
         <StatCard label="Total Produk Terdaftar" value={stats.totalProducts} icon={Package} color="bg-primary" sub="Semua barang jual & hibah" />
         <StatCard label="Total Pengguna" value={stats.totalUsers} icon={Users} color="bg-blue-500" sub="Akun terdaftar" />
-        <StatCard label="Total Transaksi Masuk" value={stats.totalTransactions} icon={ArrowLeftRight} color="bg-emerald-500" sub="Semua status (Pending - Selesai)" />
         <StatCard label="Barang Hibah" value={stats.totalHibah} icon={Gift} color="bg-orange-500" sub={`${stats.totalHibahRequests} pengajuan masuk`} />
       </div>
 
