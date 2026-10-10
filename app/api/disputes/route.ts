@@ -114,10 +114,10 @@ export async function GET(req: Request) {
         totalPrice: d.transaction.totalPrice ? Number(d.transaction.totalPrice) : 0,
         adminFee: d.transaction.adminFee ? Number(d.transaction.adminFee) : 0,
         sellerNet: d.transaction.sellerNet ? Number(d.transaction.sellerNet) : 0,
-        product: {
+        product: d.transaction.product ? {
           ...d.transaction.product,
           price: d.transaction.product.price ? Number(d.transaction.product.price) : 0,
-        }
+        } : null
       }
     }));
 
