@@ -36,6 +36,9 @@ export default function SettingsPage() {
   // Phone Verification State
   const [kycStatus, setKycStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified');
   const [kycMessage, setKycMessage] = useState('');
+  const [uploadingKyc, setUploadingKyc] = useState(false);
+  const [idCardUrl, setIdCardUrl] = useState('');
+  const [idCardNum, setIdCardNum] = useState('');
 
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
