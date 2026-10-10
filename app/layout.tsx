@@ -45,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <body className={`${inter.className} bg-background text-foreground antialiased transition-colors`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
             <PushNotificationProvider>
               <Suspense fallback={<div className="h-20" />}>

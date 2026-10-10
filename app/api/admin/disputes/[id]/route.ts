@@ -3,78 +3,104 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db as prisma } from '@/lib/db';
 
+function isAdmin(session: any) {
+  return (session?.user as any)?.role === 'admin';
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
+  const session = await getServerSession(authOptions);
+  
+  if (!isAdmin(session)) {
+    return NextResponse.json({ message: 'Forbidden: Admin access required' }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { status, adminNote } = body; // status: 'resolved_refund' or 'resolved_release'
+
+  if (!status || !['resolved_refund', 'resolved_release'].includes(status)) {
+    return NextResponse.json({ message: 'Status tidak valid' }, { status: 400 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as any)?.role !== 'admin') {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
-    }
-
-    const { action } = await req.json(); // 'refund_buyer' or 'forward_seller'
-    const transactionId = parseInt(resolvedParams.id, 10);
-
-    const transaction = await prisma.transaction.findUnique({
-      where: { id: transactionId }
+    const disputeId = parseInt(resolvedParams.id);
+    const dispute = await prisma.dispute.findUnique({
+      where: { id: disputeId },
+      include: { transaction: true }
     });
 
-    if (!transaction || transaction.status !== 'disputed') {
-      return NextResponse.json({ message: 'Transaksi tidak valid' }, { status: 404 });
+    if (!dispute) return NextResponse.json({ message: 'Dispute not found' }, { status: 404 });
+
+    if (dispute.status !== 'open' && dispute.status !== 'reviewing') {
+      return NextResponse.json({ message: 'Dispute ini sudah diselesaikan sebelumnya' }, { status: 400 });
     }
 
-    const buyer = transaction.buyerId ? await prisma.user.findUnique({ where: { id: transaction.buyerId } }) : null;
-    const seller = transaction.sellerId ? await prisma.user.findUnique({ where: { id: transaction.sellerId } }) : null;
+    const updatedDispute = await prisma.$transaction(async (tx) => {
+      // 1. Update dispute status
+      const updated = await tx.dispute.update({
+        where: { id: dispute.id },
+        data: { status }
+      });
 
-    const { sendEmail } = require('@/lib/email');
-
-    await prisma.$transaction(async (tx) => {
-      if (action === 'refund_buyer') {
-        // Uang dikembalikan ke Pembeli
+      // 2. Handle funds based on resolution
+      if (status === 'resolved_release') {
+        // Bebaskan dana ke PENJUAL (gunakan sellerNet agar admin fee dipotong)
+        const amountToTransfer = Number(dispute.transaction.sellerNet ?? dispute.transaction.totalPrice ?? 0);
+        if (dispute.transaction.sellerId && amountToTransfer > 0) {
+          await tx.user.update({
+            where: { id: dispute.transaction.sellerId },
+            data: { balance: { increment: amountToTransfer } }
+          });
+        }
+        // Update status transaksi menjadi selesai
         await tx.transaction.update({
-          where: { id: transactionId },
-          data: { status: 'cancelled' } // Dibatalkan, refund manual/otomatis
+          where: { id: dispute.transaction.id },
+          data: { status: 'review' } // review = completed in this system
         });
         
-        // Asumsi: Jika refund, saldo dikembalikan ke wallet pembeli (karena midtrans tidak ada API refund otomatis di sini)
-        await tx.user.update({
-          where: { id: transaction.buyerId! },
-          data: { balance: { increment: Number(transaction.totalPrice) } }
-        });
-
         await tx.orderStatusHistory.create({
-          data: { transactionId, status: 'cancelled', note: 'Komplain disetujui. Dana dikembalikan ke saldo pembeli.' }
+          data: {
+            transactionId: dispute.transaction.id,
+            status: 'review',
+            note: `[ADMIN RESOLUTION] Komplain ditolak. Dana diteruskan ke penjual. ${adminNote || ''}`,
+          },
+        });
+      } else if (status === 'resolved_refund') {
+        // Kembalikan dana ke PEMBELI (masuk ke saldo JUBAGI pembeli untuk MVP)
+        if (dispute.transaction.buyerId && dispute.transaction.totalPrice) {
+          await tx.user.update({
+            where: { id: dispute.transaction.buyerId },
+            data: { balance: { increment: Number(dispute.transaction.totalPrice) } }
+          });
+        }
+        // Update status transaksi menjadi refund
+        await tx.transaction.update({
+          where: { id: dispute.transaction.id },
+          data: { status: 'cancelled' }
         });
         
-        if (buyer?.email) {
-          await sendEmail(buyer.email, 'Keputusan Komplain: Dana Dikembalikan', `<p>Halo,</p><p>Berdasarkan tinjauan tim Admin JUBAGI, komplain Anda untuk transaksi TRX-00${transactionId} disetujui. Dana sebesar Rp ${transaction.totalPrice} telah dikembalikan ke saldo akun JUBAGI Anda.</p>`);
+        // Kembalikan status barang menjadi available
+        if (dispute.transaction.productId) {
+           await tx.product.update({
+             where: { id: dispute.transaction.productId },
+             data: { status: 'available' }
+           });
         }
 
-      } else if (action === 'forward_seller') {
-        // Penjual menang komplain, uang cair ke penjual
-        await tx.transaction.update({
-          where: { id: transactionId },
-          data: { status: 'success' }
-        });
-
-        await tx.user.update({
-          where: { id: transaction.sellerId! },
-          data: { balance: { increment: Number(transaction.totalPrice) } }
-        });
-
         await tx.orderStatusHistory.create({
-          data: { transactionId, status: 'success', note: 'Komplain ditolak. Dana diteruskan ke penjual.' }
+          data: {
+            transactionId: dispute.transaction.id,
+            status: 'cancelled',
+            note: `[ADMIN RESOLUTION] Komplain diterima. Dana dikembalikan ke saldo JUBAGI pembeli. ${adminNote || ''}`,
+          },
         });
-        
-        if (seller?.email) {
-          await sendEmail(seller.email, 'Keputusan Komplain: Dana Diteruskan', `<p>Halo,</p><p>Berdasarkan tinjauan tim Admin JUBAGI, komplain pembeli untuk transaksi TRX-00${transactionId} ditolak. Dana sebesar Rp ${transaction.totalPrice} telah diteruskan ke saldo akun Anda.</p>`);
-        }
       }
+
+      return updated;
     });
 
-    return NextResponse.json({ message: 'Resolusi komplain berhasil diproses', success: true });
-
-  } catch (error) {
-    console.error('Resolve dispute error:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ success: true, dispute: updatedDispute });
+  } catch (error: any) {
+    return NextResponse.json({ message: error.message || 'Server error' }, { status: 500 });
   }
 }

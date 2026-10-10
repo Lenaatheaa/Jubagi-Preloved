@@ -55,38 +55,38 @@
   }
 
   .dark {
-    --background: 0.1995 0.0198 262.0232;
+    --background: 0.1450 0.0198 262.0232;
     --foreground: 0.9801 0.0096 252.8096;
-    --card: 0.2417 0.0194 258.3564;
+    --card: 0.1995 0.0194 258.3564;
     --card-foreground: 0.9801 0.0096 252.8096;
-    --popover: 0.2417 0.0194 258.3564;
+    --popover: 0.1995 0.0194 258.3564;
     --popover-foreground: 0.9801 0.0096 252.8096;
     --primary: 0.6854 0.1699 252.9926;
-    --primary-foreground: 0.1995 0.0198 262.0232;
+    --primary-foreground: 0.1450 0.0198 262.0232;
     --secondary: 0.7233 0.1657 159.2353;
-    --secondary-foreground: 0.1995 0.0198 262.0232;
-    --muted: 0.2795 0.0204 260.6090;
-    --muted-foreground: 0.7005 0.0204 248.1197;
+    --secondary-foreground: 0.1450 0.0198 262.0232;
+    --muted: 0.2200 0.0204 260.6090;
+    --muted-foreground: 0.8200 0.0204 248.1197;
     --accent: 0.7748 0.1318 201.6395;
-    --accent-foreground: 0.1995 0.0198 262.0232;
+    --accent-foreground: 0.1450 0.0198 262.0232;
     --destructive: 0.5494 0.1993 25.1156;
     --destructive-foreground: 0.9801 0.0096 252.8096;
-    --border: 0.2750 0 0;
-    --input: 0.3250 0 0;
-    --ring: 0.5560 0 0;
+    --border: 0.3000 0.0150 258.0000;
+    --input: 0.3000 0.0150 258.0000;
+    --ring: 0.6000 0.0500 256.0000;
     --chart-1: 0.8100 0.1000 252;
     --chart-2: 0.6200 0.1900 260;
     --chart-3: 0.5500 0.2200 263;
     --chart-4: 0.4900 0.2200 264;
     --chart-5: 0.4200 0.1800 266;
-    --sidebar: 0.2050 0 0;
-    --sidebar-foreground: 0.9850 0 0;
+    --sidebar: 0.1650 0.0200 262.0232;
+    --sidebar-foreground: 0.9801 0.0096 252.8096;
     --sidebar-primary: 0.4880 0.2430 264.3760;
     --sidebar-primary-foreground: 0.9850 0 0;
-    --sidebar-accent: 0.2690 0 0;
-    --sidebar-accent-foreground: 0.9850 0 0;
-    --sidebar-border: 0.2750 0 0;
-    --sidebar-ring: 0.4390 0 0;
+    --sidebar-accent: 0.2200 0.0200 260.0000;
+    --sidebar-accent-foreground: 0.9801 0.0096 252.8096;
+    --sidebar-border: 0.3000 0.0150 258.0000;
+    --sidebar-ring: 0.5000 0.0500 256.0000;
     
     /* Legacy mapping */
     --bg: oklch(var(--background));
@@ -167,4 +167,50 @@ h1, h2, h3, h4, h5, h6 {
 .focus-ring:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* ─── Dark Mode: pastikan semua teks terbaca ─── */
+/* text-gray-* classes di dark mode */
+.dark .text-gray-300,
+.dark .text-gray-400,
+.dark .text-gray-500 {
+  color: rgb(200 210 230);
+}
+
+.dark .text-gray-600,
+.dark .text-gray-700 {
+  color: rgb(180 195 220);
+}
+
+/* Input & Textarea di dark mode */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: oklch(0.22 0.018 258);
+  color: oklch(0.96 0.008 252);
+  border-color: oklch(0.32 0.015 258);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: oklch(0.62 0.012 252);
+}
+
+/* Label dan teks kecil di dark mode */
+.dark label {
+  color: oklch(0.88 0.010 252);
+}
+
+/* bg-muted di dark mode — pastikan teks di atasnya terbaca */
+.dark .bg-muted {
+  background-color: oklch(0.22 0.018 258);
+}
+
+.dark .text-muted-foreground {
+  color: oklch(0.82 0.018 248) !important;
+}
+
+/* Card di dark mode */
+.dark .bg-card {
+  background-color: oklch(0.20 0.018 258);
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { User, Lock, Bell, Shield, Palette, Save, Loader2, Moon, Sun } from 'lucide-react';
+import { User, Lock, Bell, Shield, Palette, Save, Loader2, Moon, Sun, Phone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const TABS = [
@@ -13,6 +13,7 @@ const TABS = [
   { id: 'notifications', label: 'Notifikasi', icon: Bell },
   { id: 'privacy', label: 'Data & Privasi', icon: Shield },
   { id: 'theme', label: 'Tema', icon: Palette },
+  { id: 'kyc', label: 'Verifikasi No. Telepon', icon: Phone },
 ];
 
 export default function SettingsPage() {
@@ -31,6 +32,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+
+  // Phone Verification State
+  const [kycStatus, setKycStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified');
+  const [kycMessage, setKycMessage] = useState('');
 
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -65,6 +70,7 @@ export default function SettingsPage() {
             setAvatar(data.avatar || '');
             setNotificationsEnabled(data.notificationsEnabled ?? true);
             setPrivacyProfilePublic(data.privacyProfilePublic ?? true);
+            setKycStatus(data.kycStatus || 'unverified');
           }
           setLoading(false);
         })
@@ -106,6 +112,62 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  
+  const handleKycFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKyc(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `kyc_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `kyc/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
+      setIdCardUrl(data.publicUrl);
+    } catch (error) {
+      console.error('Upload KYC error:', error);
+      setKycMessage('Gagal mengunggah foto KTP.');
+    } finally {
+      setUploadingKyc(false);
+    }
+  };
+
+  const handleSaveKyc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setKycMessage('');
+    
+    try {
+      const res = await fetch('/api/profile/kyc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idCardNum, idCardUrl }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setKycMessage('Data verifikasi KTP berhasil dikirim! Menunggu tinjauan Admin.');
+        setKycStatus('pending');
+      } else {
+        setKycMessage(data.message || 'Gagal mengirim data KYC.');
+      }
+    } catch (error) {
+      setKycMessage('Terjadi kesalahan.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -384,6 +446,94 @@ export default function SettingsPage() {
                   </button>
                 </div>
               )}
+              
+              {activeTab === 'kyc' && (
+                <div>
+                  <h2 className="text-xl font-bold text-foreground dark:text-foreground mb-6">Verifikasi Nomor Telepon</h2>
+
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-6">
+                    <h3 className="font-bold text-blue-800 flex items-center gap-2"><Phone className="w-5 h-5"/> Mengapa Perlu Diverifikasi?</h3>
+                    <p className="text-sm text-blue-700 mt-2">Verifikasi nomor telepon diperlukan untuk membuka fitur berjualan dan penarikan dana. Admin JUBAGI akan menghubungi Anda melalui nomor ini jika ada masalah transaksi.</p>
+                  </div>
+
+                  {kycMessage && (
+                    <div className={`p-4 rounded-xl mb-6 text-sm font-bold ${kycMessage.includes('berhasil') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                      {kycMessage}
+                    </div>
+                  )}
+
+                  {kycStatus === 'verified' && (
+                    <div className="bg-green-50 border border-green-200 p-6 rounded-xl text-center">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Phone className="w-8 h-8 text-green-600" />
+                      </div>
+                      <h3 className="text-lg font-black text-green-800">Nomor Telepon Terverifikasi ✓</h3>
+                      <p className="text-green-700 text-sm mt-1 font-mono font-bold">{phone || '-'}</p>
+                      <p className="text-green-600 text-xs mt-2">Nomor Anda sudah diverifikasi oleh Admin JUBAGI.</p>
+                    </div>
+                  )}
+
+                  {kycStatus === 'pending' && (
+                    <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl text-center">
+                      <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Loader2 className="w-8 h-8 text-yellow-600 animate-spin" />
+                      </div>
+                      <h3 className="text-lg font-black text-yellow-800">Menunggu Verifikasi</h3>
+                      <p className="text-yellow-700 text-sm mt-1">Nomor <span className="font-mono font-bold">{phone}</span> sedang ditinjau oleh Admin. Proses ini memakan waktu hingga 1x24 jam.</p>
+                    </div>
+                  )}
+
+                  {(kycStatus === 'unverified' || kycStatus === 'rejected') && (
+                    <div className="space-y-5">
+                      {kycStatus === 'rejected' && (
+                        <div className="bg-red-50 p-4 rounded-xl border border-red-200">
+                          <p className="text-sm text-red-600 font-bold">Pengajuan sebelumnya ditolak. Pastikan nomor telepon Anda valid dan coba lagi.</p>
+                        </div>
+                      )}
+
+                      <div className="bg-muted p-5 rounded-xl border border-border">
+                        <p className="text-sm font-bold text-muted-foreground mb-1">Nomor telepon yang akan diverifikasi:</p>
+                        {phone ? (
+                          <p className="text-xl font-black text-foreground font-mono flex items-center gap-2">
+                            <Phone className="w-5 h-5 text-primary" /> {phone}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-red-500 font-bold">Belum ada nomor telepon. Isi di tab <span className="underline">Edit Profil</span> terlebih dahulu.</p>
+                        )}
+                      </div>
+
+                      {phone && (
+                        <button
+                          onClick={async () => {
+                            setSaving(true);
+                            setKycMessage('');
+                            try {
+                              const res = await fetch('/api/profile/kyc', { method: 'POST' });
+                              const data = await res.json();
+                              if (res.ok) {
+                                setKycMessage('Pengajuan verifikasi berhasil dikirim! Menunggu konfirmasi Admin.');
+                                setKycStatus('pending');
+                              } else {
+                                setKycMessage(data.message || 'Gagal mengajukan verifikasi.');
+                              }
+                            } catch {
+                              setKycMessage('Terjadi kesalahan. Coba lagi.');
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                          disabled={saving}
+                          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
+                        >
+                          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Phone className="w-5 h-5" />}
+                          Ajukan Verifikasi Nomor Telepon
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === 'theme' && (
                 <div>
                   <h2 className="text-xl font-bold text-foreground dark:text-foreground mb-6">Tema Aplikasi</h2>

@@ -27,6 +27,9 @@ export const GET = catchAsync(async (_req: Request) => {
     email: user.email,
     notificationsEnabled: user.profile?.notificationsEnabled ?? true,
     privacyProfilePublic: user.profile?.privacyProfilePublic ?? true,
+    kycStatus: (user.profile as any)?.kycStatus || 'unverified',
+    idCardNum: (user.profile as any)?.idCardNum || '',
+    idCardUrl: (user.profile as any)?.idCardUrl || '',
   });
 });
 

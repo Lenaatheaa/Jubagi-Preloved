@@ -15,14 +15,17 @@ export default async function JualPage() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { isSellerAcceptedTerms: true },
+    select: { 
+      isSellerAcceptedTerms: true, 
+      profile: { select: { phone: true } }
+    },
   });
 
   if (!user) redirect('/');
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 dark:from-background dark:via-background dark:to-primary/10">
-      <JualPageClient hasAcceptedTerms={user.isSellerAcceptedTerms || false} />
+      <JualPageClient hasAcceptedTerms={user.isSellerAcceptedTerms || false} initialPhone={user.profile?.phone || ''} />
     </main>
   );
 }

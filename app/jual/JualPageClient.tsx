@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { SellFormView } from '@/components/product/SellFormView';
 import { SellerTermsModal } from '@/components/profile/SellerTermsModal';
 
-export function JualPageClient({ hasAcceptedTerms }: { hasAcceptedTerms: boolean }) {
+export function JualPageClient({ hasAcceptedTerms, initialPhone }: { hasAcceptedTerms: boolean; initialPhone: string }) {
   const [isAccepted, setIsAccepted] = useState(hasAcceptedTerms);
 
   if (!isAccepted) {
-    return <SellerTermsModal onSuccess={() => setIsAccepted(true)} />;
+    return <SellerTermsModal onSuccess={() => setIsAccepted(true)} initialPhone={initialPhone} />;
   }
 
   return (

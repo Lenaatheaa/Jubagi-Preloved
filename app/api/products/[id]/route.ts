@@ -6,9 +6,14 @@ import { db as prisma } from '@/lib/db';
 // GET /api/products/[id]
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
+  const productId = Number(resolvedParams.id);
+  if (isNaN(productId)) {
+    return NextResponse.json({ message: 'ID produk tidak valid' }, { status: 400 });
+  }
+
   try {
     const product = await prisma.product.findUnique({
-      where: { id: Number(resolvedParams.id) },
+      where: { id: productId },
       include: {
         images: true,
         user: { include: { profile: true } },

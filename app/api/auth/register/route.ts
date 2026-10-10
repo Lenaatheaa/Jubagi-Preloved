@@ -15,6 +15,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { message: 'Format email tidak valid' },
+        { status: 400 }
+      );
+    }
+
     // Cek apakah email sudah terdaftar
     const existingUser = await db.user.findUnique({
       where: { email },

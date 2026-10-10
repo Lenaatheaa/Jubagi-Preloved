@@ -15,6 +15,9 @@ interface Transaction {
   createdAt: string;
   paymentMethod: string | null;
   paymentStatus: string | null;
+  shippingReceipt?: string | null;
+  courier?: string | null;
+  shippedAt?: string | null;
   product: {
     id: number;
     title: string;
@@ -33,8 +36,14 @@ function TransactionsContent() {
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'success' | 'processing' | 'delivering' | 'review'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'success' | 'processing' | 'shipped' | 'review'>('all');
   const [role, setRole] = useState<'buyer' | 'seller'>((searchParams?.get('role') as 'buyer' | 'seller') || 'buyer');
+
+  const [shippingTrxId, setShippingTrxId] = useState<number | null>(null);
+  const [disputeTrxId, setDisputeTrxId] = useState<number | null>(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [courierInput, setCourierInput] = useState('JNE');
+  const [receiptInput, setReceiptInput] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -46,6 +55,58 @@ function TransactionsContent() {
       fetchTransactions();
     }
   }, [status, role]);
+
+  const handleInputShipping = async (id: number) => {
+    if (!courierInput || !receiptInput) {
+      toast.error('Kurir dan nomor resi wajib diisi');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const res = await fetch(`/api/transactions/${id}/shipping`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courier: courierInput, shippingReceipt: receiptInput })
+      });
+      if (!res.ok) {
+         const data = await res.json();
+         throw new Error(data.message || 'Gagal menginput resi');
+      }
+      toast.success('Nomor resi berhasil disimpan');
+      setShippingTrxId(null);
+      setReceiptInput('');
+      fetchTransactions();
+    } catch (error: any) {
+      toast.error(error.message || 'Terjadi kesalahan');
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateDispute = async (id: number) => {
+    if (!disputeReason) {
+      toast.error('Alasan komplain wajib diisi');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/disputes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionId: id, reason: disputeReason })
+      });
+      if (!res.ok) {
+         const data = await res.json();
+         throw new Error(data.message || 'Gagal mengajukan komplain');
+      }
+      toast.success('Komplain berhasil diajukan. Tim JUBAGI akan meninjau pesanan ini.');
+      setDisputeTrxId(null);
+      setDisputeReason('');
+      fetchTransactions();
+    } catch (error: any) {
+      toast.error(error.message || 'Terjadi kesalahan');
+      setIsLoading(false);
+    }
+  };
 
   const handleUpdateStatus = async (id: number, newStatus: string, redirectUrl?: string) => {
     try {
@@ -94,8 +155,8 @@ function TransactionsContent() {
         return <Badge variant="success" className="gap-1"><CheckCircle className="w-3 h-3" /> Sudah Dibayar</Badge>;
       case 'processing':
         return <Badge variant="warning" className="gap-1"><Package className="w-3 h-3" /> Diproses</Badge>;
-      case 'delivering':
-        return <Badge variant="warning" className="gap-1"><Truck className="w-3 h-3" /> Dikirim</Badge>;
+      case 'shipped':
+        return <Badge variant="warning" className="gap-1 bg-blue-100 text-blue-700 border-blue-200"><Truck className="w-3 h-3" /> Dikirim</Badge>;
       case 'review':
         return <Badge variant="success" className="gap-1"><Star className="w-3 h-3 text-yellow-500" /> Selesai</Badge>;
       case 'pending':
@@ -168,7 +229,7 @@ function TransactionsContent() {
 
           {/* Tabs */}
           <div className="flex overflow-x-auto gap-2 mt-8 pb-2 scrollbar-hide">
-            {(['all', 'pending', 'success', 'processing', 'delivering', 'review'] as const).map((tab) => (
+            {(['all', 'pending', 'success', 'processing', 'shipped', 'review'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -182,7 +243,7 @@ function TransactionsContent() {
                  tab === 'pending' ? 'Belum Dibayar' : 
                  tab === 'success' ? 'Sudah Dibayar' : 
                  tab === 'processing' ? 'Diproses' : 
-                 tab === 'delivering' ? 'Dikirim' : 'Review Pesanan'}
+                 tab === 'shipped' ? 'Dikirim' : 'Review Pesanan'}
               </button>
             ))}
           </div>
@@ -232,6 +293,24 @@ function TransactionsContent() {
                         <p className="text-muted-foreground text-sm flex items-center gap-2">
                           Penjual: <span className="font-bold text-foreground">{trx.product?.sellerName || 'Anonim'}</span>
                         </p>
+                        {trx.shippingReceipt && (
+                          <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl inline-block">
+                            <p className="text-xs text-blue-600 font-bold uppercase mb-1">Informasi Pengiriman</p>
+                            <div className="flex items-center gap-2">
+                              <Truck className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm font-medium text-blue-900">{trx.courier} - {trx.shippingReceipt}</span>
+                            </div>
+                          </div>
+                        )}
+                        {trx.shippingReceipt && (
+                          <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl inline-block">
+                            <p className="text-xs text-blue-600 font-bold uppercase mb-1">Informasi Pengiriman</p>
+                            <div className="flex items-center gap-2">
+                              <Truck className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm font-medium text-blue-900">{trx.courier} - {trx.shippingReceipt}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-left md:text-right flex flex-col md:items-end gap-2">
@@ -277,25 +356,47 @@ function TransactionsContent() {
                             <Star className="w-4 h-4 text-yellow-500" /> Beri Ulasan
                           </Link>
                         )}
-                        {role === 'buyer' && trx.status === 'delivering' && (
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => {
-                                if(confirm('Apakah Anda yakin barang rusak/tidak sesuai dan ingin mengajukan komplain? Uang akan ditahan oleh JUBAGI hingga masalah selesai.')) {
-                                  handleUpdateStatus(trx.id, 'disputed');
-                                }
-                              }}
-                              className="px-6 py-2 rounded-full bg-red-50 text-red-600 font-bold text-sm border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-1.5"
-                            >
-                              Komplain
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateStatus(trx.id, 'review', `/review/${trx.id}`)}
-                              className="px-6 py-2 rounded-full bg-green-500 text-white font-bold text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-500/30 flex items-center gap-1.5"
-                            >
-                              <CheckCircle className="w-4 h-4" /> Pesanan Diterima
-                            </button>
-                          </div>
+                        {role === 'buyer' && trx.status === 'shipped' && (
+                          disputeTrxId === trx.id ? (
+                            <div className="flex flex-col gap-2 w-full max-w-sm mt-2 p-3 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                              <p className="text-xs text-red-600 font-bold mb-1">Form Pengajuan Komplain</p>
+                              <textarea 
+                                placeholder="Sertakan alasan komplain (misal: barang rusak, tidak sesuai deskripsi, dll)"
+                                value={disputeReason}
+                                onChange={(e) => setDisputeReason(e.target.value)}
+                                className="px-3 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-red-500 min-h-[80px]"
+                              />
+                              <div className="flex gap-2 mt-1">
+                                <button 
+                                  onClick={() => handleCreateDispute(trx.id)}
+                                  className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-bold shadow hover:bg-red-700"
+                                >
+                                  Kirim Komplain
+                                </button>
+                                <button 
+                                  onClick={() => setDisputeTrxId(null)}
+                                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => { setDisputeTrxId(trx.id); setDisputeReason(''); }}
+                                className="px-6 py-2 rounded-full bg-red-50 text-red-600 font-bold text-sm border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                              >
+                                Komplain
+                              </button>
+                              <button 
+                                onClick={() => handleUpdateStatus(trx.id, 'review', `/review/${trx.id}`)}
+                                className="px-6 py-2 rounded-full bg-green-500 text-white font-bold text-sm hover:bg-green-600 transition-colors shadow-md shadow-green-500/30 flex items-center gap-1.5"
+                              >
+                                <CheckCircle className="w-4 h-4" /> Pesanan Diterima
+                              </button>
+                            </div>
+                          )
                         )}
                         {role === 'seller' && trx.status === 'success' && (
                           <button 
@@ -305,12 +406,61 @@ function TransactionsContent() {
                             <Package className="w-4 h-4" /> Proses Pesanan
                           </button>
                         )}
-                        {role === 'seller' && trx.status === 'processing' && (
+                        {role === 'seller' && trx.status === 'processing' && trx.product?.type !== 'hibah' && (
+                          shippingTrxId === trx.id ? (
+                            <div className="flex flex-col gap-2 w-full max-w-sm mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                              <select 
+                                value={courierInput}
+                                onChange={(e) => setCourierInput(e.target.value)}
+                                className="px-3 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="JNE">JNE</option>
+                                <option value="J&T">J&T</option>
+                                <option value="SiCepat">SiCepat</option>
+                                <option value="GoSend">GoSend</option>
+                                <option value="GrabExpress">GrabExpress</option>
+                                <option value="Lainnya">Lainnya</option>
+                              </select>
+                              <input 
+                                type="text"
+                                placeholder="Masukkan Nomor Resi"
+                                value={receiptInput}
+                                onChange={(e) => setReceiptInput(e.target.value)}
+                                className="px-3 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-indigo-500"
+                              />
+                              <div className="flex gap-2 mt-1">
+                                <button 
+                                  onClick={() => handleInputShipping(trx.id)}
+                                  className="flex-1 py-2 bg-indigo-500 text-white rounded-lg text-sm font-bold shadow hover:bg-indigo-600"
+                                >
+                                  Simpan Resi
+                                </button>
+                                <button 
+                                  onClick={() => setShippingTrxId(null)}
+                                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-300"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => {
+                                setShippingTrxId(trx.id);
+                                setReceiptInput('');
+                              }}
+                              className="px-6 py-2 rounded-full bg-indigo-500 text-white font-bold text-sm hover:bg-indigo-600 transition-colors shadow-md shadow-indigo-500/30 flex items-center gap-1.5"
+                            >
+                              <Truck className="w-4 h-4" /> Input Resi Pengiriman
+                            </button>
+                          )
+                        )}
+                        {role === 'seller' && trx.status === 'processing' && trx.product?.type === 'hibah' && (
                           <button 
-                            onClick={() => handleUpdateStatus(trx.id, 'delivering')}
+                            onClick={() => handleUpdateStatus(trx.id, 'shipped')}
                             className="px-6 py-2 rounded-full bg-indigo-500 text-white font-bold text-sm hover:bg-indigo-600 transition-colors shadow-md shadow-indigo-500/30 flex items-center gap-1.5"
                           >
-                            <Truck className="w-4 h-4" /> Kirim Barang
+                            <Truck className="w-4 h-4" /> Tandai Terkirim
                           </button>
                         )}
                         {/* DEV SIMULATION BUTTONS FOR BUYER TO BYPASS SELLER ACTIONS */}
@@ -324,7 +474,7 @@ function TransactionsContent() {
                         )}
                         {role === 'buyer' && trx.status === 'processing' && (
                           <button 
-                            onClick={() => handleUpdateStatus(trx.id, 'delivering')}
+                            onClick={() => handleUpdateStatus(trx.id, 'shipped')}
                             className="px-6 py-2 rounded-full border-2 border-indigo-500 text-indigo-500 font-bold text-sm hover:bg-indigo-50 transition-colors shadow-sm"
                           >
                             Simulasi Penjual Mengirim (Dev)

@@ -40,34 +40,38 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         where: { id: transaction.id },
         data: { status },
       });
-      
+
       if (status === 'success') {
         // Update payment to success
         await tx.payment.updateMany({
           where: { transactionId: transaction.id },
           data: { paymentStatus: 'success' }
         });
-        
+
         // Update product to sold if not hibah (hibah is already handled differently or can just be marked sold)
         if (transaction.productId) {
-           await tx.product.update({
-             where: { id: transaction.productId },
-             data: { status: 'sold' }
-           });
+          await tx.product.update({
+            where: { id: transaction.productId },
+            data: { status: 'sold' }
+          });
         }
       }
 
       if (status === 'review') {
         // Transaction completed (Pesanan Diterima), transfer money to seller's wallet
-        if (transaction.sellerId && transaction.totalPrice) {
-          await tx.user.update({
-            where: { id: transaction.sellerId },
-            data: {
-              balance: {
-                increment: Number(transaction.totalPrice)
+        // Use sellerNet so admin fee is properly deducted from the amount received by the seller.
+        if (transaction.sellerId) {
+          const amountToTransfer = Number(transaction.sellerNet ?? transaction.totalPrice ?? 0);
+          if (amountToTransfer > 0) {
+            await tx.user.update({
+              where: { id: transaction.sellerId },
+              data: {
+                balance: {
+                  increment: amountToTransfer
+                }
               }
-            }
-          });
+            });
+          }
         }
       }
 

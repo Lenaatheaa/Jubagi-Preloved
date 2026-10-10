@@ -10,11 +10,24 @@ export async function POST(request: Request) {
   }
 
   try {
+    const body = await request.json();
+    const { phone } = body;
+
+    if (!phone) {
+      return NextResponse.json({ message: 'Nomor telepon wajib diisi' }, { status: 400 });
+    }
+
     const user = await prisma.user.update({
       where: { email: session.user.email },
       data: {
         isSellerAcceptedTerms: true,
         sellerAcceptedAt: new Date(),
+        profile: {
+          upsert: {
+            create: { phone: phone },
+            update: { phone: phone }
+          }
+        }
       }
     });
 

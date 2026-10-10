@@ -49,6 +49,12 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith('/admin') || path.startsWith('/api/admin')) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET || 'rahasia_jubagi_123' });
     if (!token || token.role !== 'admin') {
+      if (path.startsWith('/api/')) {
+        return new NextResponse(JSON.stringify({ message: 'Forbidden' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       // Tolak akses jika bukan admin, redirect ke beranda
       return NextResponse.redirect(new URL('/', request.url));
     }

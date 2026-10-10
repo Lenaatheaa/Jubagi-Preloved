@@ -62,6 +62,9 @@ export const GET = catchAsync(async (request: Request) => {
       createdAt: t.createdAt,
       paymentMethod: latestPayment?.paymentMethod || null,
       paymentStatus: latestPayment?.paymentStatus || null,
+      shippingReceipt: (t as any).shippingReceipt || null,
+      courier: (t as any).courier || null,
+      shippedAt: (t as any).shippedAt || null,
       product: product
         ? {
             id: product.id,

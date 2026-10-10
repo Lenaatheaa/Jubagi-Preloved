@@ -20,6 +20,7 @@ const MENU = [
   { href: '/admin/categories', label: 'Kategori', icon: Tag },
   { href: '/admin/reports', label: 'Moderasi Komunitas', icon: ShieldAlert },
   { href: '/admin/disputes', label: 'Resolusi Sengketa', icon: Scale },
+  { href: '/admin/kyc', label: 'Verifikasi No. Telepon', icon: Shield },
   { href: '/admin/settings', label: 'Pengaturan Sistem', icon: Settings },
 ];
 
