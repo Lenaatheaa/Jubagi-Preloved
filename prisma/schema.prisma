@@ -85,6 +85,7 @@ model Product {
   likes       ProductLike[]
   boosts      ProductBoost[]
   reports     Report[]
+  transactions Transaction[]
 
   @@index([type], name: "idx_product_type")
   @@index([status, deletedAt], name: "idx_product_status_deleted")
@@ -171,6 +172,7 @@ model Transaction {
   history     OrderStatusHistory[]
   reviews     Review[]
   disputes    Dispute[]
+  product     Product?  @relation(fields: [productId], references: [id])
 
   @@index([buyerId], name: "idx_trx_buyer")
   @@index([sellerId], name: "idx_trx_seller")
