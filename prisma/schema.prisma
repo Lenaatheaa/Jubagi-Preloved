@@ -159,7 +159,7 @@ model Transaction {
   totalPrice  BigInt?   @map("total_price")
   adminFee    BigInt?   @default(0) @map("admin_fee")
   sellerNet   BigInt?   @default(0) @map("seller_net")
-  feeType     String?   @default("buyer") @db.VarChar(20) @map("fee_type")
+  feeType     String?   @default("seller") @db.VarChar(20) @map("fee_type")
   status      String?   @default("pending") @db.VarChar(20)
   shippingReceipt String?   @db.VarChar(255) @map("shipping_receipt")
   courier         String?   @db.VarChar(100)

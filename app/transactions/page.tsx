@@ -12,6 +12,9 @@ interface Transaction {
   id: number;
   status: string;
   totalPrice: number;
+  adminFee?: number;
+  sellerNet?: number;
+  feeType?: string;
   createdAt: string;
   paymentMethod: string | null;
   paymentStatus: string | null;
@@ -352,10 +355,24 @@ function TransactionsContent() {
                         {getStatusBadge(trx.status)}
                         {trx.product?.type !== 'hibah' && (
                           <div className="mt-1">
-                            <span className="text-xs text-muted-foreground uppercase font-bold block mb-0.5">Total Belanja</span>
+                            <span className="text-xs text-muted-foreground uppercase font-bold block mb-0.5">{role === 'seller' ? 'Harga Produk' : 'Total Belanja'}</span>
                             <span className="text-xl font-black text-primary">
                               Rp {trx.totalPrice.toLocaleString('id-ID')}
                             </span>
+                            {role === 'seller' && (
+                              <div className="mt-1 text-xs space-y-0.5">
+                                {Boolean(trx.adminFee && trx.adminFee > 0) && (
+                                  <p className="text-amber-600 dark:text-amber-400 font-medium">
+                                    Fee Admin: -Rp {trx.adminFee?.toLocaleString('id-ID')}
+                                  </p>
+                                )}
+                                <p className="font-bold text-emerald-600 dark:text-emerald-400">
+                                  Net Penjual: Rp {(trx.sellerNet ?? (trx.totalPrice - (trx.adminFee || 0))).toLocaleString('id-ID')}
+                                </p>
+                              </div>
+                            )}
+
+
                           </div>
                         )}
                       </div>

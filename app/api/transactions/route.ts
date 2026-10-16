@@ -59,6 +59,9 @@ export const GET = catchAsync(async (request: Request) => {
       id: t.id,
       status: t.status || 'pending',
       totalPrice: t.totalPrice ? Number(t.totalPrice) : 0,
+      adminFee: t.adminFee ? Number(t.adminFee) : 0,
+      sellerNet: t.sellerNet ? Number(t.sellerNet) : 0,
+      feeType: t.feeType || 'seller',
       createdAt: t.createdAt,
       paymentMethod: latestPayment?.paymentMethod || null,
       paymentStatus: latestPayment?.paymentStatus || null,
@@ -160,7 +163,7 @@ export const POST = catchAsync(async (request: Request) => {
       totalPrice: BigInt(finalPrice),
       adminFee: BigInt(adminFee),
       sellerNet: BigInt(sellerNet),
-      feeType: 'buyer',
+      feeType: 'seller',
       status: isHibah ? 'success' : 'pending',
     },
   });

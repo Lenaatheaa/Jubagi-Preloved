@@ -24,7 +24,7 @@ export async function GET() {
       totalPrice: transaction.totalPrice ? Number(transaction.totalPrice) : 0,
       adminFee: transaction.adminFee ? Number(transaction.adminFee) : 0,
       sellerNet: transaction.sellerNet ? Number(transaction.sellerNet) : 0,
-      feeType: transaction.feeType || 'buyer',
+      feeType: transaction.feeType || 'seller',
       status: transaction.status,
       createdAt: transaction.createdAt,
     })),
