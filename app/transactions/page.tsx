@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Package, Clock, CheckCircle, XCircle, Search, CreditCard, Star, Truck } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, Search, CreditCard, Star, Truck, RefreshCw, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/hooks/useToast';
 
@@ -15,6 +15,7 @@ interface Transaction {
   createdAt: string;
   paymentMethod: string | null;
   paymentStatus: string | null;
+  midtransOrderId?: string | null;
   shippingReceipt?: string | null;
   courier?: string | null;
   shippedAt?: string | null;
@@ -38,6 +39,7 @@ function TransactionsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'success' | 'processing' | 'shipped' | 'review'>('all');
   const [role, setRole] = useState<'buyer' | 'seller'>((searchParams?.get('role') as 'buyer' | 'seller') || 'buyer');
+  const [syncingId, setSyncingId] = useState<number | null>(null);
 
   const [shippingTrxId, setShippingTrxId] = useState<number | null>(null);
   const [disputeTrxId, setDisputeTrxId] = useState<number | null>(null);
@@ -52,9 +54,50 @@ function TransactionsContent() {
     }
 
     if (status === 'authenticated') {
-      fetchTransactions();
+      const paymentParam = searchParams?.get('payment');
+      const trxIdParam = searchParams?.get('trx_id');
+
+      const initData = async () => {
+        const trxs = await fetchTransactions();
+        if (paymentParam === 'success') {
+          if (trxIdParam) {
+            toast.info('Memverifikasi status pembayaran dari Midtrans...');
+            await handleSyncStatus(Number(trxIdParam), true);
+          } else if (trxs && trxs.length > 0) {
+            const pendingTrx = trxs.find(t => t.status === 'pending');
+            if (pendingTrx) {
+              toast.info('Memverifikasi status pembayaran dari Midtrans...');
+              await handleSyncStatus(pendingTrx.id, true);
+            }
+          }
+        }
+      };
+
+      initData();
     }
   }, [status, role]);
+
+  const handleSyncStatus = async (id: number, silent = false) => {
+    try {
+      setSyncingId(id);
+      const res = await fetch(`/api/transactions/${id}/sync`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Gagal sinkronisasi status');
+
+      if (data.updated && data.status === 'success') {
+        toast.success(data.message || 'Pembayaran berhasil terkonfirmasi!');
+      } else if (data.status === 'pending') {
+        if (!silent) toast.info(data.message || 'Pembayaran masih berstatus pending');
+      } else {
+        if (!silent) toast.info(data.message || `Status: ${data.status}`);
+      }
+      await fetchTransactions();
+    } catch (error: any) {
+      if (!silent) toast.error(error.message || 'Gagal memeriksa status pembayaran');
+    } finally {
+      setSyncingId(null);
+    }
+  };
 
   const handleInputShipping = async (id: number) => {
     if (!courierInput || !receiptInput) {
@@ -137,6 +180,7 @@ function TransactionsContent() {
       if (!res.ok) throw new Error('Gagal mengambil riwayat transaksi');
       const data = await res.json();
       setTransactions(data);
+      return data as Transaction[];
     } catch (error: any) {
       toast.error(error.message || 'Terjadi kesalahan');
     } finally {
@@ -302,15 +346,6 @@ function TransactionsContent() {
                             </div>
                           </div>
                         )}
-                        {trx.shippingReceipt && (
-                          <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl inline-block">
-                            <p className="text-xs text-blue-600 font-bold uppercase mb-1">Informasi Pengiriman</p>
-                            <div className="flex items-center gap-2">
-                              <Truck className="w-4 h-4 text-blue-500" />
-                              <span className="text-sm font-medium text-blue-900">{trx.courier} - {trx.shippingReceipt}</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
 
                       <div className="text-left md:text-right flex flex-col md:items-end gap-2">
@@ -463,14 +498,20 @@ function TransactionsContent() {
                             <Truck className="w-4 h-4" /> Tandai Terkirim
                           </button>
                         )}
-                        {/* DEV SIMULATION BUTTONS FOR BUYER TO BYPASS SELLER ACTIONS */}
+                        {/* Status info & simulasi untuk Pembeli saat sudah dibayar */}
                         {role === 'buyer' && trx.status === 'success' && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                              Pembayaran terkonfirmasi. Menunggu penjual memproses pesanan.
+                            </span>
                           <button 
                             onClick={() => handleUpdateStatus(trx.id, 'processing')}
                             className="px-6 py-2 rounded-full border-2 border-blue-500 text-blue-500 font-bold text-sm hover:bg-blue-50 transition-colors shadow-sm"
                           >
                             Simulasi Penjual Memproses (Dev)
                           </button>
+                          </div>
                         )}
                         {role === 'buyer' && trx.status === 'processing' && (
                           <button 
@@ -480,14 +521,41 @@ function TransactionsContent() {
                             Simulasi Penjual Mengirim (Dev)
                           </button>
                         )}
+                        {/* Tombol Cek Status Pembayaran (untuk Pembeli & Penjual saat pending) */}
+                        {trx.status === 'pending' && trx.product?.type !== 'hibah' && (
+                          <button
+                            onClick={() => handleSyncStatus(trx.id)}
+                            disabled={syncingId === trx.id}
+                            className="px-5 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {syncingId === trx.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Memeriksa Midtrans...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-4 h-4" />
+                                <span>Cek Status Pembayaran</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                         {role === 'buyer' && trx.status === 'pending' && trx.product?.type !== 'hibah' && (
                           <>
                             <button onClick={() => handleUpdateStatus(trx.id, 'success')} className="px-6 py-2 rounded-full border-2 border-primary text-primary font-bold text-sm hover:bg-pink-50 transition-colors shadow-sm">
                               Simulasi Pembayaran (Dev)
                             </button>
-                            <button className="px-6 py-2 rounded-full bg-primary text-white font-bold text-sm hover:bg-[#e06699] transition-colors shadow-md shadow-primary/30">
-                              Bayar Sekarang
-                            </button>
+                            {trx.product && (
+                              <Link
+                                href={`/checkout/${trx.product.id}`}
+                                className="px-6 py-2 rounded-full bg-primary text-white font-bold text-sm hover:bg-[#e06699] transition-colors shadow-md shadow-primary/30 flex items-center gap-1.5"
+                              >
+                                Bayar Sekarang
+                              </Link>
+                            )}
+
+
                           </>
                         )}
                       </div>

@@ -62,6 +62,7 @@ export const GET = catchAsync(async (request: Request) => {
       createdAt: t.createdAt,
       paymentMethod: latestPayment?.paymentMethod || null,
       paymentStatus: latestPayment?.paymentStatus || null,
+      midtransOrderId: latestPayment?.midtransOrderId || null,
       shippingReceipt: (t as any).shippingReceipt || null,
       courier: (t as any).courier || null,
       shippedAt: (t as any).shippedAt || null,
@@ -198,12 +199,13 @@ export const POST = catchAsync(async (request: Request) => {
   }
 
   // 5. Init Midtrans untuk produk berbayar
-  console.log('[Transactions] Initializing Midtrans (Forced Sandbox)...');
-  const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
-  const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
+  const serverKey = (process.env.MIDTRANS_SERVER_KEY || '').trim();
+  const clientKey = (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '').trim();
+  const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true' || (!serverKey.startsWith('SB-') && process.env.NODE_ENV === 'production');
+  console.log(`[Transactions] Initializing Midtrans (isProduction: ${isProduction})...`);
   
   const snap = new midtransClient.Snap({
-    isProduction: false, // Force sandbox
+    isProduction,
     serverKey,
     clientKey,
   });
@@ -238,9 +240,9 @@ export const POST = catchAsync(async (request: Request) => {
       },
     },
     callbacks: {
-      finish: `${baseUrl}/transactions?role=buyer&payment=success`,
-      unfinish: `${baseUrl}/transactions?role=buyer&payment=pending`,
-      error: `${baseUrl}/transactions?role=buyer&payment=error`,
+      finish: `${baseUrl}/transactions?role=buyer&payment=success&order_id=${orderId}&trx_id=${transaction.id}`,
+      unfinish: `${baseUrl}/transactions?role=buyer&payment=pending&order_id=${orderId}&trx_id=${transaction.id}`,
+      error: `${baseUrl}/transactions?role=buyer&payment=error&order_id=${orderId}&trx_id=${transaction.id}`,
     },
   };
 

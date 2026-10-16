@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     // 2. Validasi Signature Key
     // signature_key = SHA512(order_id + status_code + gross_amount + ServerKey)
-    const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
+    const serverKey = (process.env.MIDTRANS_SERVER_KEY || '').trim();
     const hash = crypto.createHash('sha512');
     hash.update(`${order_id}${status_code}${gross_amount}${serverKey}`);
     const generatedSignature = hash.digest('hex');
@@ -58,16 +58,37 @@ export async function POST(request: Request) {
     const seller = transaction.sellerId ? await prisma.user.findUnique({ where: { id: transaction.sellerId }, include: { profile: true } }) : null;
     const product = transaction.productId ? await prisma.product.findUnique({ where: { id: transaction.productId } }) : null;
 
-    const payment = await prisma.payment.findFirst({
+    let payment = await prisma.payment.findFirst({
       where: { transactionId: transactionId, midtransOrderId: order_id },
     });
 
-    // 5. Tentukan status baru berdasarkan transaction_status Midtrans
+    // Fallback: cari payment berdasarkan transactionId saja jika midtransOrderId berbeda
+    if (!payment) {
+      payment = await prisma.payment.findFirst({
+        where: { transactionId: transactionId },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // 5. Tentukan status baru berdasarkan transaction_status & fraud_status Midtrans
+    const fraudStatus = body.fraud_status;
+    const paymentType = body.payment_type || payment?.paymentMethod || 'midtrans';
+
     let paymentStatus = 'pending';
     let transactionStatus = 'pending';
     let note = `Midtrans notification: ${transaction_status}`;
 
-    if (transaction_status === 'capture' || transaction_status === 'settlement') {
+    if (transaction_status === 'capture') {
+      if (fraudStatus === 'challenge') {
+        paymentStatus = 'challenge';
+        transactionStatus = 'pending';
+        note = 'Pembayaran dalam peninjauan keamanan (Fraud Challenge)';
+      } else {
+        paymentStatus = 'success';
+        transactionStatus = 'success';
+        note = 'Pembayaran berhasil dikonfirmasi oleh Midtrans';
+      }
+    } else if (transaction_status === 'settlement') {
       paymentStatus = 'success';
       transactionStatus = 'success';
       note = 'Pembayaran berhasil dikonfirmasi oleh Midtrans';
@@ -81,40 +102,34 @@ export async function POST(request: Request) {
       note = 'Menunggu pembayaran dari pelanggan';
     }
 
-    // 6. Update database dalam transaction
+    // 6. Update database dalam transaction (Inti data pembayaran)
     await prisma.$transaction(async (tx) => {
       // Update Payment jika ada
       if (payment) {
         await tx.payment.update({
           where: { id: payment.id },
-          data: { paymentStatus: paymentStatus },
+          data: { 
+            paymentStatus: paymentStatus,
+            paymentMethod: paymentType,
+            midtransOrderId: order_id,
+          },
         });
       } else {
-        // Jika belum ada record payment (jarang terjadi karena kita buat sebelum Midtrans token), buat baru
         await tx.payment.create({
           data: {
             transactionId: transaction.id,
             midtransOrderId: order_id,
-            paymentMethod: 'qris', // Default assumtion
+            paymentMethod: paymentType,
             paymentStatus: paymentStatus,
             amount: BigInt(parseInt(gross_amount, 10) || 0),
           }
         });
       }
 
-      // Update Transaction
+      // Update Transaction status
       await tx.transaction.update({
         where: { id: transaction.id },
         data: { status: transactionStatus },
-      });
-
-      // Catat di History
-      await tx.orderStatusHistory.create({
-        data: {
-          transactionId: transaction.id,
-          status: transactionStatus,
-          note: note,
-        },
       });
 
       // Jika sukses, ubah status produk menjadi 'sold'
@@ -126,23 +141,39 @@ export async function POST(request: Request) {
       }
     });
 
+    // 7. Catat audit history di luar transaksi utama agar tidak rollback jika tabel belum ada
+    try {
+      await prisma.orderStatusHistory.create({
+        data: {
+          transactionId: transaction.id,
+          status: transactionStatus,
+          note: note,
+        },
+      });
+    } catch (e) {
+      console.warn('[Midtrans Webhook] Gagal mencatat orderStatusHistory (diabaikan):', e);
+    }
+
+    // 8. Kirim notifikasi email secara asynchronous
     if (transactionStatus === 'success') {
-      const { sendEmail } = require('@/lib/email');
-      // Email ke pembeli
-      if (buyer?.email) {
-        await sendEmail(
-          buyer.email,
-          `Pembayaran Berhasil: ${product?.title || 'Pesanan Anda'}`,
-          `<p>Halo ${buyer.profile?.name || 'Pembeli'},</p><p>Pembayaran Anda untuk <strong>${product?.title || 'Pesanan Anda'}</strong> sebesar Rp ${transaction.totalPrice} telah berhasil.</p><p>Mohon tunggu penjual memproses pesanan Anda.</p>`
-        );
-      }
-      // Email ke penjual
-      if (seller?.email) {
-        await sendEmail(
-          seller.email,
-          `Pesanan Baru Masuk: ${product?.title || 'Produk Anda'}`,
-          `<p>Halo ${seller.profile?.name || 'Penjual'},</p><p>Hore! <strong>${product?.title || 'Produk Anda'}</strong> telah dibayar oleh pembeli. Segera proses dan kirimkan barangnya ya!</p>`
-        );
+      try {
+        const { sendEmail } = require('@/lib/email');
+        if (buyer?.email) {
+          await sendEmail(
+            buyer.email,
+            `Pembayaran Berhasil: ${product?.title || 'Pesanan Anda'}`,
+            `<p>Halo ${buyer.profile?.name || 'Pembeli'},</p><p>Pembayaran Anda untuk <strong>${product?.title || 'Pesanan Anda'}</strong> sebesar Rp ${transaction.totalPrice} telah berhasil.</p><p>Mohon tunggu penjual memproses pesanan Anda.</p>`
+          );
+        }
+        if (seller?.email) {
+          await sendEmail(
+            seller.email,
+            `Pesanan Baru Masuk: ${product?.title || 'Produk Anda'}`,
+            `<p>Halo ${seller.profile?.name || 'Penjual'},</p><p>Hore! <strong>${product?.title || 'Produk Anda'}</strong> telah dibayar oleh pembeli. Segera proses dan kirimkan barangnya ya!</p>`
+          );
+        }
+      } catch (mailErr) {
+        console.error('[Midtrans Webhook] Gagal mengirim email notifikasi:', mailErr);
       }
     }
 
