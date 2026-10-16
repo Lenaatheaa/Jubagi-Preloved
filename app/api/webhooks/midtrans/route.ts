@@ -35,14 +35,16 @@ export async function POST(request: Request) {
     // order_id format: JUBAGI-{transactionId}-{timestamp} ATAU HIBAH-{transactionId}
     const orderIdParts = order_id.split('-');
     if (orderIdParts.length < 2) {
-      return NextResponse.json({ message: 'Unknown order_id format' }, { status: 400 });
+      console.log('[Midtrans Webhook] Test notification ping acknowledged:', order_id);
+      return NextResponse.json({ message: 'Test notification acknowledged' }, { status: 200 });
     }
     
     const transactionIdStr = orderIdParts[1];
     const transactionId = parseInt(transactionIdStr, 10);
 
     if (isNaN(transactionId)) {
-      return NextResponse.json({ message: 'Invalid transaction ID' }, { status: 400 });
+      console.log('[Midtrans Webhook] Test notification format acknowledged:', order_id);
+      return NextResponse.json({ message: 'Test notification acknowledged' }, { status: 200 });
     }
 
     // 4. Cari transaksi dan pembayaran di database
@@ -51,7 +53,8 @@ export async function POST(request: Request) {
     });
 
     if (!transaction) {
-      return NextResponse.json({ message: 'Transaction not found' }, { status: 404 });
+      console.log('[Midtrans Webhook] Transaction not found (acknowledged for test order):', transactionId);
+      return NextResponse.json({ message: 'Transaction not found or test order' }, { status: 200 });
     }
 
     const buyer = transaction.buyerId ? await prisma.user.findUnique({ where: { id: transaction.buyerId }, include: { profile: true } }) : null;
@@ -183,4 +186,8 @@ export async function POST(request: Request) {
     console.error('[Midtrans Webhook] Error:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ status: 'active', message: 'Midtrans Webhook endpoint is live' }, { status: 200 });
 }
